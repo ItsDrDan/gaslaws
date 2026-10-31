@@ -272,6 +272,27 @@ main.panel::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;
 .law span .fraction{min-width:34px;font-size:.95em}.law .fraction .num,.law .fraction .den{padding:1px 4px}
 .root{border-top:1.5px solid #2f385a;padding-top:2px;display:inline-block}
 .law{display:flex;flex-direction:column;justify-content:center}.law span{line-height:1.6}
+/* mascot floats like a gas particle: drifting, bobbing, a little wobble */
+.intro-mascot{animation:gasFloat 6.5s ease-in-out infinite;transform-origin:50% 60%;will-change:transform}
+.tb-brand img{animation:gasFloat 6.5s ease-in-out infinite;animation-delay:-2.3s}
+@keyframes gasFloat{
+ 0%{transform:translate(0,0) rotate(0)}
+ 18%{transform:translate(3px,-9px) rotate(3deg)}
+ 34%{transform:translate(-2px,-4px) rotate(-1.5deg)}
+ 52%{transform:translate(-4px,-12px) rotate(-4deg)}
+ 70%{transform:translate(2px,-5px) rotate(2deg)}
+ 86%{transform:translate(4px,-10px) rotate(3.5deg)}
+ 100%{transform:translate(0,0) rotate(0)}}
+.intro-mascot:hover{animation-duration:1.6s}
+/* cards: flex so a short last row centers; formulas never wrap */
+.eqcards{display:flex!important;flex-wrap:wrap;justify-content:center;gap:10px}
+.eqcard{flex:0 1 calc(25% - 7.5px);min-width:0}
+.eqf{white-space:nowrap}
+.eqcard.c6 .eqf{font-size:.95em}
+@media(max-width:680px){.eqcards{gap:8px}.eqcard{flex-basis:calc(50% - 4px)}.eqcard.c6 .eqf{font-size:.88em}}
+.howto{justify-content:center}
+.skills{justify-content:center}
+@media(max-width:680px){.skills{flex-wrap:wrap;overflow-x:visible;margin:0 0 12px;padding:0;gap:6px}.skill{padding:6px 11px;font-size:.88rem;min-height:40px}}
 </style></head>
 <body><canvas id="celebrationCanvas" aria-hidden="true" hidden></canvas><div class="toasts" id="toasts" aria-live="polite"></div>
 <div class="app">
@@ -345,7 +366,7 @@ main.panel::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;
     <div class="law"><b>Combined</b><span><span class="fraction"><span class="num">P<sub>1</sub>V<sub>1</sub></span><span class="den">T<sub>1</sub></span></span> = <span class="fraction"><span class="num">P<sub>2</sub>V<sub>2</sub></span><span class="den">T<sub>2</sub></span></span></span></div>
     <div class="law"><b>Ideal gas</b><span>PV = nRT</span></div>
     <div class="law"><b>Molar volume (STP)</b><span>1 mol = 22.4 L at 273 K, 1.00 atm</span></div>
-    <div class="law"><b>Molar mass &amp; density</b><span>M = <span class="fraction"><span class="num">m</span><span class="den">n</span></span> &nbsp;·&nbsp; d = <span class="fraction"><span class="num">PM</span><span class="den">RT</span></span></span></div>
+    <div class="law"><b>Molar mass</b><span>M = <span class="fraction"><span class="num">m</span><span class="den">n</span></span></span></div><div class="law c1a"><b>Gas density (1A)</b><span>d = <span class="fraction"><span class="num">PM</span><span class="den">RT</span></span></span></div>
     <div class="law"><b>Dalton</b><span>P<sub>total</sub> = P<sub>A</sub> + P<sub>B</sub> + … &nbsp;·&nbsp; χ<sub>A</sub> = <span class="fraction"><span class="num">n<sub>A</sub></span><span class="den">n<sub>total</sub></span></span> &nbsp;·&nbsp; P<sub>A</sub> = χ<sub>A</sub>P<sub>total</sub></span></div>
     <div class="law"><b>Gas over water</b><span>P<sub>gas</sub> = P<sub>total</sub> − P<sub>H₂O</sub></span></div>
     <div class="law c1a"><b>RMS speed (1A)</b><span>u<sub>rms</sub> = √<span class="root"><span class="fraction"><span class="num">3RT</span><span class="den">M</span></span></span> <small>(M in kg/mol)</small></span></div>
@@ -592,7 +613,7 @@ function genSTP(){const g=pick(['CH4','O2','N2','CO2','He','NH3','Ar','H2','C3H8
  const L=rnd(1.00,50.0),n=L/VM;return {mode:'Molar volume (STP)',equationHTML:'liters → moles → grams',prompt:`What is the mass of ${meas(L,'L')} of ${gasName(g)} (${fhtml(g)}) at STP?`,kind:'numeric',answer:n*M,unit:'g',sf:3,hints:[head,'liters → moles (÷ 22.4) → grams (× molar mass).'],guide:[solveStep('Moles','Convert liters to moles.',`${fmt(L)} L × ${frac('1 mol','22.4 L')}`,n,'mol'),mmStep(g),solveStep('Grams','Convert moles to grams.',`${fmt(n,4)} mol × ${frac(M+' g','1 mol')}`,n*M,'g')],traps:[{v:n,msg:'That is moles. Multiply by the molar mass to get grams.'}],video:'stp'};}
 
 /* Level 9: molar mass, density, mystery gas */
-function genMolar(force){const c=C();const t=force||pick(c==='3A'?['mm','mystery','mystery','dstp']:['mm','mystery','mystery','dens','mFromD']);
+function genMolar(force){const c=C();const t=force||pick(c==='3A'?['mm','mystery','mystery']:['mm','mystery','mystery','dens','mFromD']);
  if(t==='dstp'||(t==='dens'&&c==='3A')){const g=pick(['CH4','O2','N2','CO2','Ar','Cl2','NH3','He']),M=molarMass(g),d=M/VM;
   return {mode:'Gas density (STP)',equationHTML:'density = molar mass ÷ 22.4 L/mol (at STP)',prompt:`What is the density of ${gasName(g)} (${fhtml(g)}) gas at STP, in g/L?`,kind:'numeric',answer:d,unit:'g/L',sf:3,hints:['At STP, 1 mol (molar mass in grams) fills 22.4 L.','density = (g/mol) ÷ (22.4 L/mol)'],guide:[mmStep(g),solveStep('Density','Divide the molar mass by 22.4 L/mol.',frac(M+' g/mol','22.4 L/mol'),d,'g/L')],video:'molar'};}
  if(t==='dens'){const g=pick(['CH4','O2','N2','CO2','Ar','Cl2','NH3','SO2','C3H8']),M=molarMass(g),tt=rint(-20,200),P=rnd(0.500,6.00),d=P*M/(R*Kof(tt));
@@ -926,25 +947,45 @@ byId('vpTable').innerHTML=vpTable(null);
 
 /* ---------- 7. Particle Playground ---------- */
 const LAB={T:300,V:15,n:1,gas:'He',parts:[],run:false,hits:0,hitT:0,rate:0,raf:0,last:0};
-const LGAS={He:{M:4.003,c:'#f2b541',r:6},N2:{M:28.014,c:'#5b8def',r:7.5},Xe:{M:131.29,c:'#a77be0',r:9.5}};
+const LGAS={He:{M:4.003,c:'#f2b541',r:6},N2:{M:28.014,c:'#5b8def',r:6,di:1},Xe:{M:131.29,c:'#a77be0',r:9.5}};
 function labCourse(){}
-function labReset(){const cnt=Math.round(LAB.n*30);while(LAB.parts.length<cnt)LAB.parts.push({x:Math.random(),y:Math.random(),a:Math.random()*Math.PI*2,f:.6+Math.random()*.8});LAB.parts.length=cnt;}
+function labBW(W){return W*(0.22+0.56*(LAB.V-5)/20);}
+function labReset(){const cnt=Math.round(LAB.n*30);while(LAB.parts.length<cnt)LAB.parts.push({x:Math.random(),y:Math.random(),a:Math.random()*Math.PI*2,f:.6+Math.random()*.8,rot:Math.random()*Math.PI,spin:(Math.random()-.5)*.006});LAB.parts.length=cnt;}
 function labRead(){LAB.T=+byId('labT').value;LAB.V=+byId('labV').value;LAB.n=+byId('labN').value;byId('labTv').textContent=LAB.T+' K';byId('labVv').textContent=LAB.V.toFixed(1)+' L';byId('labNv').textContent=LAB.n.toFixed(2)+' mol';
  const Pv=LAB.n*R*LAB.T/LAB.V;byId('labP').textContent=Pv.toFixed(2)+' atm';byId('labBar').style.width=Math.min(100,Pv/(2*R*600/5)*100)+'%';labReset();if(!LAB.run)labDraw();}
-function labDraw(){const cv=byId('labCanvas'),x=cv.getContext('2d'),W=cv.width,H=cv.height,bw=W*(0.3+0.7*(LAB.V-5)/20);x.clearRect(0,0,W,H);
- x.fillStyle='#ffffff';x.strokeStyle='#8b95ee';x.lineWidth=3;x.beginPath();x.roundRect?x.roundRect(4,4,bw-8,H-8,12):x.rect(4,4,bw-8,H-8);x.fill();x.stroke();
- x.fillStyle='#c8cdee';x.fillRect(bw-6,10,8,H-20);x.fillStyle='#8a93ab';x.font='600 13px system-ui';x.fillText('piston',Math.min(bw+8,W-50),24);
- const g=LGAS[LAB.gas];for(const p of LAB.parts){x.fillStyle=g.c;x.strokeStyle='#2f385a';x.lineWidth=1.2;x.beginPath();x.arc(10+p.x*(bw-28),10+p.y*(H-28),g.r,0,7);x.fill();x.stroke();}}
-function labStep(now){if(!LAB.run)return;const dt=Math.min(50,now-(LAB.last||now));LAB.last=now;const cv=byId('labCanvas'),W=cv.width,bw=W*(0.3+0.7*(LAB.V-5)/20),g=LGAS[LAB.gas];
+function labDraw(){const cv=byId('labCanvas'),x=cv.getContext('2d'),W=cv.width,H=cv.height,bw=labBW(W);x.clearRect(0,0,W,H);const wall=10,top=6,bot=H-6,barrelEnd=W-70;
+ /* cylinder barrel: closed on the left, open on the right where the piston slides */
+ x.fillStyle='#ffffff';x.fillRect(4+wall,top+wall,barrelEnd-4-wall,bot-top-2*wall);
+ const g1=x.createLinearGradient(0,top,0,bot);g1.addColorStop(0,'#b9c1ea');g1.addColorStop(.5,'#dfe3f7');g1.addColorStop(1,'#a9b2e2');
+ x.fillStyle=g1;x.fillRect(4,top,barrelEnd-4,wall);x.fillRect(4,bot-wall,barrelEnd-4,wall);x.fillRect(4,top,wall,bot-top);
+ x.strokeStyle='#7f89d6';x.lineWidth=2;x.beginPath();x.moveTo(barrelEnd,top);x.lineTo(4,top);x.lineTo(4,bot);x.lineTo(barrelEnd,bot);x.stroke();x.beginPath();x.moveTo(barrelEnd,top+wall);x.lineTo(14,top+wall);x.lineTo(14,bot-wall);x.lineTo(barrelEnd,bot-wall);x.lineWidth=1;x.stroke();
+ x.fillStyle='#eef0f8';x.fillRect(bw+18,top+wall,barrelEnd-bw-18,bot-top-2*wall);
+ /* piston head */
+ const hw=18,hx=bw,ht=top+wall,hh=bot-top-2*wall;const g2=x.createLinearGradient(hx,0,hx+hw,0);g2.addColorStop(0,'#8e98dd');g2.addColorStop(.5,'#c6cdf3');g2.addColorStop(1,'#7c86d2');
+ x.fillStyle=g2;x.fillRect(hx,ht,hw,hh);x.strokeStyle='#4b57d1';x.lineWidth=1.5;x.strokeRect(hx,ht,hw,hh);
+ x.strokeStyle='#5a64c8';x.lineWidth=1;for(const f of [.25,.75]){x.beginPath();x.moveTo(hx+3,ht+hh*f);x.lineTo(hx+hw-3,ht+hh*f);x.stroke();}
+ /* rod + handle */
+ const ry=(top+bot)/2,rodEnd=W-18;const g3=x.createLinearGradient(0,ry-6,0,ry+6);g3.addColorStop(0,'#c9cee8');g3.addColorStop(.5,'#f4f5fc');g3.addColorStop(1,'#aab2d6');
+ x.fillStyle=g3;x.fillRect(hx+hw,ry-6,rodEnd-hx-hw,12);x.strokeStyle='#8a93c4';x.strokeRect(hx+hw,ry-6,rodEnd-hx-hw,12);
+ x.fillStyle='#e0675a';x.beginPath();x.roundRect?x.roundRect(rodEnd-4,ry-34,14,68,6):x.rect(rodEnd-4,ry-34,14,68);x.fill();x.strokeStyle='#b84c40';x.stroke();
+ const g=LGAS[LAB.gas];x.strokeStyle='#2f385a';x.lineWidth=1.2;
+ for(const p of LAB.parts){const cx=4+wall+8+p.x*(bw-4-wall-16),cy=top+wall+8+p.y*(bot-top-2*wall-16);x.fillStyle=g.c;
+  if(g.di){const dx=Math.cos(p.rot)*g.r*.8,dy=Math.sin(p.rot)*g.r*.8;
+   x.beginPath();x.arc(cx-dx,cy-dy,g.r,0,7);x.fill();x.stroke();x.beginPath();x.arc(cx+dx,cy+dy,g.r,0,7);x.fill();x.stroke();
+   x.fillStyle='#ffffff99';x.beginPath();x.arc(cx-dx-g.r*.3,cy-dy-g.r*.3,g.r*.28,0,7);x.arc(cx+dx-g.r*.3,cy+dy-g.r*.3,g.r*.28,0,7);x.fill();}
+  else{x.beginPath();x.arc(cx,cy,g.r,0,7);x.fill();x.stroke();x.fillStyle='#ffffff99';x.beginPath();x.arc(cx-g.r*.3,cy-g.r*.3,g.r*.28,0,7);x.fill();}}}
+function labStep(now){if(!LAB.run)return;const dt=Math.min(50,now-(LAB.last||now));LAB.last=now;const cv=byId('labCanvas'),W=cv.width,bw=labBW(W),g=LGAS[LAB.gas];
  const sp=Math.sqrt(LAB.T/g.M)*0.00012*dt*(15/ (bw/W*15+3));
- for(const p of LAB.parts){p.x+=Math.cos(p.a)*sp*p.f*(W/bw);p.y+=Math.sin(p.a)*sp*p.f*2.1;if(p.x<0||p.x>1){p.a=Math.PI-p.a;p.x=Math.max(0,Math.min(1,p.x));LAB.hits++;}if(p.y<0||p.y>1){p.a=-p.a;p.y=Math.max(0,Math.min(1,p.y));LAB.hits++;}}
+ for(const p of LAB.parts){p.rot+=p.spin*dt*Math.sqrt(LAB.T/300);p.x+=Math.cos(p.a)*sp*p.f*(W/bw);p.y+=Math.sin(p.a)*sp*p.f*2.1;if(p.x<0||p.x>1){p.a=Math.PI-p.a;p.x=Math.max(0,Math.min(1,p.x));LAB.hits++;}if(p.y<0||p.y>1){p.a=-p.a;p.y=Math.max(0,Math.min(1,p.y));LAB.hits++;}}
  if(now-LAB.hitT>1000){LAB.rate=LAB.hits;LAB.hits=0;LAB.hitT=now;byId('labHits').textContent='wall hits: '+LAB.rate+' /s (more hits = more pressure)';}
  labDraw();LAB.raf=requestAnimationFrame(labStep);}
 function labPlay(on){LAB.run=on;byId('labPlay').textContent=on?'⏸ Pause':'▶ Play';cancelAnimationFrame(LAB.raf);if(on){LAB.last=0;LAB.raf=requestAnimationFrame(labStep);}}
 ['labT','labV','labN'].forEach(id=>byId(id).addEventListener('input',()=>{labRead();if(!P.lab){P.lab=1;save();checkAch();}}));
 byId('labGas').onclick=e=>{const b=e.target.closest('[data-gas]');if(!b)return;LAB.gas=b.dataset.gas;byId('labGas').querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===b));byId('labNote').textContent=LAB.gas==='He'?'Helium is light, so its particles zip around fastest.':LAB.gas==='Xe'?'Xenon is heavy: slower particles, but the SAME pressure and kinetic energy at the same T.':'Nitrogen makes up 78% of the air you breathe.';labRead();};
-byId('labPlay').onclick=()=>labPlay(!LAB.run);
+byId('labPlay').onclick=()=>{LAB.userPaused=LAB.run;labPlay(!LAB.run);};
 byId('labSection').addEventListener('toggle',()=>{if(byId('labSection').open){labRead();labPlay(!reduceMotion());}else labPlay(false);});
+/* pause automatically when the playground is scrolled off screen; resume when it comes back (unless the student paused it) */
+LAB.userPaused=false;if('IntersectionObserver' in window)new IntersectionObserver(es=>{const vis=es[0].isIntersecting;if(!byId('labSection').open)return;if(!vis&&LAB.run)labPlay(false);else if(vis&&!LAB.run&&!LAB.userPaused&&!reduceMotion())labPlay(true);},{threshold:.15}).observe(byId('labCanvas'));
 
 (function init(){let c='';try{c=(new URLSearchParams(location.search).get('course')||'').toUpperCase().replace('CHEM','').trim()}catch(e){}renderStatus();renderBadges();byId('viewTabs').querySelector('[data-view="learn"]').classList.add('active');setCourse(['3A','1A'].includes(c)?c:DEFAULT_COURSE);})();
 
