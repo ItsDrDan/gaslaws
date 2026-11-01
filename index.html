@@ -561,7 +561,7 @@ function genAvog(){const c=C(),g=pick(['He','Ar','N2','O2','CO2','Ne']);const n1
 /* Level 6: Combined */
 function genCombined(){const c=C(),vu=pick(['L','mL']),stp=Math.random()<.2,pu=c==='3A'?'atm':pick(['atm','atm','mmHg']);
  const t1=stp?0:rint(-20,60);let t2;do{t2=rint(-40,150)}while(Math.abs(t2-t1)<15);
- const P1v=stp?1.00:pu==='atm'?rnd(0.600,3.00):rnd(500,999),V1v=vu==='L'?rnd(1.00,25.0):rnd(150,900);
+ const P1v=stp?(pu==='atm'?1.00:760):pu==='atm'?rnd(0.600,3.00):rnd(500,999),V1v=vu==='L'?rnd(1.00,25.0):rnd(150,900);
  let P2v=pu==='atm'?rnd(0.400,6.00):rnd(400,999,3);const mixed=c==='1A'&&!stp&&pu==='mmHg'&&Math.random()<.4;let pu2=pu;if(mixed){pu2='atm';P2v=rnd(0.500,2.50);}const P2same=P2v/PU[pu2]*PU[pu];
  const what=Math.random()<.7||c==='3A'?'V':'P';
  const pre=stp?`A ${meas(V1v,vu)} balloon at STP (${meas(1,'atm')} and 273 K)`:`A gas sample occupies ${meas(V1v,vu)} at ${meas(P1v,pu)} and ${tC(t1)}.`;
