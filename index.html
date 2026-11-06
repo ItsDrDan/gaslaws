@@ -461,7 +461,7 @@ function genUnits(){const c=C(),t=pick(c==='3A'?['p','p','k','ml']:['p','p','k',
  const guide=[];if(a==='torr'&&b==='mmHg')guide.push({title:'Same unit',ask:'1 torr = 1 mmHg. What is the pressure in mmHg?',explain:`${fmt(v)} torr = <b>${fmt(v)} mmHg</b>`,kind:'numeric',answer:v,unit:'mmHg'});
  else if(a==='atm'||b==='atm')guide.push(pStep(v,a,'P',b));else{guide.push(pStep(v,a,'P','atm'));guide.push(pStep(v/PU[a],'atm','P',b));}
  return {mode:'Pressure units',equationHTML:'1 atm = 760 mmHg = 760 torr = 101.325 kPa = 14.7 psi',prompt:`${ctx} ${meas(v,a)}. What is the pressure in <b>${b}</b>?`,kind:'numeric',answer:ans,unit:b,sf:3,
-  hints:[`Find the conversion between ${a} and ${b} on the Yellow Sheet.`,'Set up the factor so the unit you start with cancels.'],guide,traps:[{v:v*PU[a]/PU[b]*(PU[b]/PU[a])**2,msg:'Your conversion factor is upside down. The starting unit should be on the bottom so it cancels.'}]};}
+  hints:[`Find the conversion between ${a} and ${b} on the Yellow Sheet.`,'Set up the factor so the unit you start with cancels.'],guide,traps:[{v:v*PU[a]/PU[b],msg:'Your conversion factor is upside down. The starting unit should be on the bottom so it cancels.'}]};}
 
 /* Level 2: KMT + relationships (concept bank + generated predictions) */
 const CONCEPTS=[
