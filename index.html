@@ -410,9 +410,9 @@ function fmt(x,s=3){if(!Number.isFinite(x))return '—';if(x===0)return '0';cons
 const rnd=(lo,hi,s=3)=>Number((lo+Math.random()*(hi-lo)).toPrecision(s));
 const rint=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
 const r3=(x,s=3)=>Number(x.toPrecision(s));
-function parseValue(raw){const t=unsup(raw).trim().replace(/,/g,'').replace(/\s+/g,'').replace(/^−/,'-').replace(/[×x*·]10\^?([+-]?\d+)$/i,'e$1');return /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(t)?Number(t):NaN;}
+function parseValue(raw){const t=unsup(raw).replace(/[−–]/g,'-').trim().replace(/,/g,'').replace(/\s+/g,'').replace(/[×x*·]10\^?([+-]?\d+)$/i,'e$1');return /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(t)?Number(t):NaN;}
 /* returns [min,max] possible sig figs (trailing zeros without a decimal point are ambiguous) */
-function sfRange(s){let t=unsup(s).trim().replace(/,/g,'').replace(/\s/g,'').replace(/(?:[×x*·]10\^?|[eE])[+-]?\d+$/,'').replace(/^[+\-−]/,'');if(!/^\d*\.?\d*$/.test(t)||!/\d/.test(t))return [0,0];
+function sfRange(s){let t=unsup(s).replace(/[−–]/g,'-').trim().replace(/,/g,'').replace(/\s/g,'').replace(/(?:[×x*·]10\^?|[eE])[+-]?\d+$/,'').replace(/^[+\-−]/,'');if(!/^\d*\.?\d*$/.test(t)||!/\d/.test(t))return [0,0];
  if(t.includes('.')){const d=t.replace('.','').replace(/^0+/,'');const z=d?d.length:Math.max(1,(t.split('.')[1]||'').length);return [z,z];}t=t.replace(/^0+(?=\d)/,'');const core=t.replace(/0+$/,'').length;return [core||1,t.length];}
 const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const fhtml=f=>'<span class="formula">'+esc(f).replace(/(\d+)/g,'<sub>$1</sub>')+'</span>';
@@ -923,12 +923,13 @@ function quizResult(q,right,extra=''){ddLog(q,right);q.done=1;q.quizRight=right;
 function sfCloseMsg(raw,need,ans){const [lo,hi]=sfRange(raw);return '<b>Your math is right, but your significant figures are not.</b> '+(lo&&lo===hi?'You entered <b>'+lo+'</b> sig fig'+(lo===1?'':'s')+'. ':'')+'This answer needs <b>'+need+'</b>: <b>'+ans+'</b>. On a Skill Check or exam this would lose points, so fix it next time!';}
 function checkAnswer(){const q=S.q,raw=byId('answer').value.trim();if(q.done)return;if(!raw)return feedback('info','Enter an answer first.');const n=parseValue(raw);if(!Number.isFinite(n))return feedback('info','Enter a number, like 0.0472 or 4.72E-2.');tried(q);
  if(q.kind==='abs'){const ok=Math.abs(n-q.answer)<=q.tol;if(!ok){const t=trapMsg(q,n),dg=t?null:ddDiagnose(n,q.answer,q.unit);ddSlip(q,t?'trap':dg?dg.code:'other');}if(q.quiz)return quizResult(q,ok);return ok?feedback('good','Correct! '+esc(q.shown)+'.'+score(q)):(wrong(q),feedback('bad',(trapMsg(q,n)||(ddDiagnose(n,q.answer,q.unit)||{}).msg||'Check your setup. Remember K = °C + 273.15.')));}
- const close=Math.abs(n-q.answer)<=Math.abs(q.answer)*.01;
+ /* sig-fig answers: within 0.5% AND ±1 in the last digit of the rounded answer (as Stoichiometry); extra digits are rounded to q.sf first, then get the yellow sig-fig notice */
+ const [lo,hi]=q.sf?sfRange(raw):[0,0],sfOff=!!q.sf&&(q.sf<lo||q.sf>hi),target=q.sf?Number(Number(q.answer).toPrecision(q.sf)):q.answer,step=q.sf&&target?Math.pow(10,Math.floor(Math.log10(Math.abs(target)))-q.sf+1):0,nr=sfOff&&lo>q.sf?Number(n.toPrecision(q.sf)):n;
+ const close=q.sf&&target?Math.abs(n-(nr===n?target:q.answer))<=Math.abs(target)*.005&&((sfOff&&lo<q.sf)||Math.abs(nr-target)<=step*1.001):Math.abs(n-q.answer)<=Math.abs(q.answer)*.01;
  if(!close){const t=trapMsg(q,n),dg=t?null:ddDiagnose(n,q.answer,q.unit);ddSlip(q,t?'trap':dg?dg.code:'other');}
- const sfOff=close&&q.sf&&(()=>{const [lo,hi]=sfRange(raw);return q.sf<lo||q.sf>hi})();const sfMis=sfOff&&!(()=>{const [lo]=sfRange(raw),m=Math.max(1,Math.min(lo,q.sf));return Number(n.toPrecision(m))===Number(Number(q.answer).toPrecision(m))})();if(sfOff&&!sfMis)q.sfSlip=true;if(sfMis)ddSlip(q,'close');
- if(q.quiz)return quizResult(q,close&&!sfMis,sfOff&&!sfMis?sfCloseMsg(raw,q.sf,esc(fmt(q.answer,q.sf))+' '+unitHTML(q.unit))+' ':'');
+ if(close&&sfOff)q.sfSlip=true;
+ if(q.quiz)return quizResult(q,close,close&&sfOff?sfCloseMsg(raw,q.sf,esc(fmt(q.answer,q.sf))+' '+unitHTML(q.unit))+' ':'');
  if(!close){wrong(q);const t=trapMsg(q,n)||(ddDiagnose(n,q.answer,q.unit)||{}).msg;return feedback('bad',t||'Check your setup and arithmetic. Try a hint or the step-by-step help.');}
- if(sfMis){wrong(q);return feedback('bad','Very close, but your last digits don’t match. Recheck your arithmetic and rounding, and keep extra digits until the final step.');}
  if(sfOff)return feedback('close',sfCloseMsg(raw,q.sf,esc(fmt(q.answer,q.sf))+' '+unitHTML(q.unit))+score(q));
  feedback('good','Correct! '+esc(fmt(q.answer,q.sf))+' '+unitHTML(q.unit)+'.'+score(q));}
 /* wrong-choice reason from the shared question bank (questionbank/whys.js) */
