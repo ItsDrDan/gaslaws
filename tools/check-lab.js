@@ -19,6 +19,8 @@ const M={He:4.003,N2:28.014,Xe:131.29};
 /* independent reference: ideal gas with a locked or free piston */
 function ref(s){const Vfree=s.n*Rg*s.T/s.Pext,V=s.free?Math.min(25,Math.max(5,Vfree)):s.V;return {V,P:s.n*Rg*s.T/V,clamped:s.free&&(Vfree<5||Vfree>25)};}
 const plain=h=>String(h).replace(/<[^>]+>/g,'');
+const ascii=t=>t.replace(' × 10','e').replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]/g,c=>c==='⁻'?'-':String('⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c)));
+const sfSeen={};
 for(const fam of ['boyle','gay','charles','avog','pn','swap'])for(let i=0;i<N;i++){const sp=ctx.labSpec(fam),L=sp.lab,s=L.start,e=L.end;
  const a=ref(s),b=ref(e);
  ok(!a.clamped&&!b.clamped,'free piston hit a stop (state outside 5–25 L)',sp);
@@ -46,24 +48,30 @@ for(const fam of ['boyle','gay','charles','avog','pn','swap'])for(let i=0;i<N;i+
  ok(Array.isArray(sp.hints)&&sp.hints.length>=3,'needs 3 graduated hints',sp);
  /* apply step: recompute from the numbers shown to the student */
  const ap=sp.apply;
- if(ap.kind==='numeric'){const txt=plain(ap.prompt),nums=[...txt.matchAll(/(-?\d+(?:\.\d+)?)\s*(atm|L|K|°C|mol)\b/g)].map(m=>({v:+m[1],u:m[2]}));
-  let exp;const g=u=>nums.filter(x=>x.u===u);
-  if(fam==='boyle'){const [p1]=g('atm'),[v1,v3]=g('L');exp=p1.v*v1.v/v3.v;}
-  else if(fam==='gay'){const [p1]=g('atm'),[t1]=g('K'),[c3]=g('°C');exp=p1.v*(c3.v+K)/t1.v;}
-  else if(fam==='charles'){const [v1]=g('L'),[t1]=g('K'),[c3]=g('°C');exp=v1.v*(c3.v+K)/t1.v;}
-  else{const u=fam==='avog'?'L':'atm',[x1]=g(u),[n1,n3]=g('mol');exp=x1.v*n3.v/n1.v;}
+ if(ap.kind==='numeric'){const txt=plain(ap.prompt),nums=[...txt.matchAll(/(-?\d+(?:\.\d*)?(?: × 10[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)?)\s*(atm|L|K|°C|mol)(?![A-Za-z])/g)].map(m=>{const raw=ascii(m[1]);return {v:ctx.parseValue(raw),u:m[2],raw,sf:ctx.sfRange(raw)[0],dp:(raw.split('.')[1]||'').replace(/e.*$/,'').length};});
+  let exp,want;const g=u=>nums.filter(x=>x.u===u);
+  for(const x of nums)ok(Number.isFinite(x.v)&&x.sf>=1&&x.sf<=5,'a given is not 1–5 clear sig figs: '+x.raw,sp);
+  if(fam==='boyle'){const [p1]=g('atm'),[v1,v3]=g('L');exp=p1.v*v1.v/v3.v;want=Math.min(p1.sf,v1.sf,v3.sf);ok(v1.v===s.V,'V₁ in the prompt is not the lab setting',sp);}
+  else if(fam==='gay'){const [p1]=g('atm'),[t1]=g('K'),[c3]=g('°C');exp=p1.v*(c3.v+K)/t1.v;want=Math.min(p1.sf,t1.sf,String(Math.round(Math.abs(c3.v+K))).length+Math.min(c3.dp,2));ok(t1.v===s.T,'T₁ in the prompt is not the lab setting',sp);}
+  else if(fam==='charles'){const [v1]=g('L'),[t1]=g('K'),[c3]=g('°C');exp=v1.v*(c3.v+K)/t1.v;want=Math.min(v1.sf,t1.sf,String(Math.round(Math.abs(c3.v+K))).length+Math.min(c3.dp,2));ok(t1.v===s.T,'T₁ in the prompt is not the lab setting',sp);}
+  else{const u=fam==='avog'?'L':'atm',[x1]=g(u),[n1,n3]=g('mol');exp=x1.v*n3.v/n1.v;want=Math.min(x1.sf,n1.sf,n3.sf);ok(n1.v===s.n,'n₁ in the prompt is not the lab setting',sp);}
   ok(near(ap.answer,exp,1e-9),'apply answer disagrees with the numbers in its prompt ('+txt+') → '+ap.answer+' vs '+exp,sp);
   ok(Number.isFinite(ap.answer)&&ap.answer>0,'apply answer not positive',sp);
-  /* the answer shown at 3 sf must grade as correct, and must pass the sig-fig rule */
-  const shown=ctx.fmt(ap.answer,3).replace(' × 10','e').replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]/g,c=>({'⁻':'-'})[c]??String('⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c)));
-  const [lo,hi]=ctx.sfRange(shown);ok(lo===3&&hi===3,'displayed answer '+shown+' is not 3 sig figs',sp);
-  ok(near(ctx.parseValue(shown),ap.answer,0.005),'displayed answer does not parse back',sp);
+  /* answer sig figs = the fewest in the data (the kelvin sum by the addition rule); the shown answer must carry exactly that many */
+  ok(ap.sf===want&&ap.sf>=1&&ap.sf<=5,'answer sig figs '+ap.sf+' but the data allow '+want+' ('+txt+')',sp);sfSeen[ap.sf]=(sfSeen[ap.sf]||0)+1;
+  const shown=ascii(ctx.fmt(ap.answer,ap.sf));
+  const [lo,hi]=ctx.sfRange(shown);ok(lo===ap.sf&&hi===ap.sf,'displayed answer '+shown+' is not '+ap.sf+' sig figs',sp);
+  ok(!/treat lab readings/.test(txt),'old 3-sig-fig wording',sp);
+  /* °C → K step: rounded by the addition rule, half up (248.0 + 273.15 = 521.2) */
+  for(const st of ap.steps.map(plain)){const m=st.match(/T₂ = (-?[\d.]+) \+ 273\.15 = ([\d.]+) K/);if(m){const d=(m[1].split('.')[1]||'').length,want=(Math.round((+m[1]+K)*10**d+1e-6)/10**d).toFixed(d);ok(m[2]===want,'kelvin step '+m[1]+' + 273.15 = '+m[2]+', should be '+want,sp);}}
+  {const st=Math.pow(10,Math.floor(Math.log10(Math.abs(ap.answer)))-ap.sf+1);ok(Math.abs(ctx.parseValue(shown)-ap.answer)<=st/2*1.000001,'displayed answer does not parse back: '+shown,sp);}
   for(const tr of ap.traps||[])ok(Math.abs(tr.v-ap.answer)>Math.abs(ap.answer)*0.02,'a trap value is within 2% of the right answer: '+tr.msg,sp);
   ok(!/e[+-]?\d/.test(txt)&&!/NaN|undefined/.test(txt),'raw machine notation or junk in prompt: '+txt,sp);}
  else{ok(ap.options.some(o=>o.key===ap.answer),'apply choice key missing',sp);ok(new Set(ap.options.map(o=>o.key)).size===ap.options.length,'apply choices not distinct',sp);}
  for(const t of [sp.predict.ask,sp.explain.ask,...sp.predict.options.map(o=>o.html),...sp.explain.options.map(o=>o.html)])ok(!/NaN|undefined|Infinity/.test(t),'junk text: '+t,sp);
 }
-console.log(`${checks} checks on ${N*6} lab questions: ${fails?fails+' FAILED':'all passed'}`);if(fails)process.exit(1);
+ok(!html.includes('fmt(sp.apply.answer,3)'),'worked solution prints the lab answer at a fixed 3 sig figs');
+console.log('answer sig figs seen:',JSON.stringify(sfSeen));console.log(`${checks} checks on ${N*6} lab questions: ${fails?fails+' FAILED':'all passed'}`);if(fails)process.exit(1);
 /* decimal commas: "2,5" must not be read as 25; thousands separators still work */
 {const cases={'2,5':NaN,'0,25':NaN,'1,200':1200,'12,500.5':12500.5,'2.5':2.5,'4.10E2':410,'4.10*10^2':410,'-3,1':NaN,'1,000,000':1e6};
  let bad=0;for(const [k,v] of Object.entries(cases)){const got=ctx.parseValue(k);if(!(Number.isNaN(v)?Number.isNaN(got):near(got,v)))bad++,console.log('FAIL parseValue',k,'→',got);}
