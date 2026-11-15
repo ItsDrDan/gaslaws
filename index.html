@@ -310,6 +310,7 @@ main.panel::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;
 </style><script src="https://itsdrdan.github.io/games/track.js" defer></script>
 
 <link rel="stylesheet" href="https://itsdrdan.github.io/games/brand/itsdrdan.css">
+<script src="https://itsdrdan.github.io/games/brand/chemparse.v1.js"></script><!-- shared number reading (never edited; a change is a new version) -->
 <script src="https://itsdrdan.github.io/games/brand/icons.js" defer></script>
 <script src="https://itsdrdan.github.io/games/brand/embed.js" defer></script>
 <script src="https://itsdrdan.github.io/questionbank/whys.js" defer></script>
@@ -423,17 +424,16 @@ const R=0.082058,RJ=8.3144,RS='0.08206',VM=22.4,KOFF=273.15;
 /* ---------- 1. number + text helpers ---------- */
 const sup=s=>String(s).replace(/[0-9-]/g,c=>'⁰¹²³⁴⁵⁶⁷⁸⁹'['0123456789'.indexOf(c)]||'⁻');
 const unsup=s=>String(s).replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻⁺]/g,c=>({'⁻':'-','⁺':'+'})[c]??String('⁰¹²³⁴⁵⁶⁷⁸⁹'.indexOf(c)));
-function fmt(x,s=3){if(!Number.isFinite(x))return '—';if(x===0)return '0';const r=Number(x.toPrecision(s)),e=Math.floor(Math.log10(Math.abs(r)));
- if(e>=5||e<=-4||e+1>s){const [m,p]=r.toExponential(s-1).split('e');return m+' × 10'+sup(Number(p));}
- let fx=r.toFixed(Math.max(0,s-1-e));if(e+1===s&&/0$/.test(fx))fx+='.';return fx;}
+function fmt(x,s=3){return CP.fmt(x,s);}
 const rnd=(lo,hi,s=3)=>Number((lo+Math.random()*(hi-lo)).toPrecision(s));
 const rint=(lo,hi)=>lo+Math.floor(Math.random()*(hi-lo+1));
 const r3=(x,s=3)=>Number(x.toPrecision(s));
-const decimalComma=raw=>{const t=String(raw).replace(/\s+/g,'');return t.includes(',')&&!/^[+\-−–]?\d{1,3}(,\d{3})+(\.\d*)?([eE×x*·].*)?$/.test(t);};
-function parseValue(raw){if(decimalComma(raw))return NaN;const t=unsup(raw).replace(/[−–]/g,'-').trim().replace(/,/g,'').replace(/\s+/g,'').replace(/[×x*·]10\^?([+-]?\d+)$/i,'e$1');return /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(t)?Number(t):NaN;}
+/* Shared number reading: games/brand/chemparse.v1.js (loaded in <head>). If it did not load, say so instead of marking answers wrong. */
+const CP=window.ChemParse||null;if(!CP)document.addEventListener('DOMContentLoaded',()=>{const b=document.createElement('div');b.setAttribute('role','alert');b.style.cssText='position:sticky;top:0;z-index:999;background:#fff3cd;border-bottom:2px solid #e0a800;padding:12px 16px;font-weight:700;text-align:center';b.textContent='Part of this game did not load, so answers cannot be checked. Please reload the page.';document.body.prepend(b);});
+const decimalComma=raw=>CP.decimalComma(raw);
+function parseValue(raw){return CP.parseValue(raw);}
 /* returns [min,max] sig figs. Instructor rule: trailing zeros with no decimal point are NOT significant (1200 = 2; 1200. or 1.20×10³ = 3), so min = max */
-function sfRange(s){let t=unsup(s).replace(/[−–]/g,'-').trim().replace(/,/g,'').replace(/\s/g,'').replace(/(?:[×x*·]10\^?|[eE])[+-]?\d+$/,'').replace(/^[+\-−]/,'');if(!/^\d*\.?\d*$/.test(t)||!/\d/.test(t))return [0,0];
- if(t.includes('.')){const d=t.replace('.','').replace(/^0+/,'');const z=d?d.length:Math.max(1,(t.split('.')[1]||'').length);return [z,z];}t=t.replace(/^0+(?=\d)/,'');const core=t.replace(/0+$/,'').length;return [core||1,core||1];}
+function sfRange(s){const n=CP.sfCount(s);return [n,n];}
 const esc=s=>String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const fhtml=f=>'<span class="formula">'+esc(f).replace(/(\d+)/g,'<sub>$1</sub>')+'</span>';
 const fsub=f=>esc(f).replace(/(\d+)/g,'<sub>$1</sub>');
@@ -945,7 +945,7 @@ function trapMsg(q,n){for(const t of q.traps||[])if(Number.isFinite(t.v)&&t.v!==
 function quizResult(q,right,extra=''){ddLog(q,right);q.done=1;q.quizRight=right;S.quiz.results[S.quiz.i]=right;byId('answer').disabled=true;byId('check').disabled=true;byId('choiceBox').querySelectorAll('button').forEach(b=>b.disabled=true);
  if(right){P.correct++;P.streak++;P.best=Math.max(P.best,P.streak);addXP(10);celebrate();}else{P.streak=0;save();renderStatus();}
  if(S.quiz.i===9)byId('bottomNext').textContent='See my results →';feedback(right?(q.sfSlip?'close':'good'):'bad',(right&&!q.sfSlip?'Correct! ':'')+extra+(right?'':'<div style="margin-top:6px">Answer: <b>'+answerText(q)+'</b></div>'+(q.finalExplain?'<div class="stepnote">'+q.finalExplain+'</div>':'')));checkAch();}
-function sfCloseMsg(raw,need,ans){const [lo,hi]=sfRange(raw);return '<b>Your math is right, but your significant figures are not.</b> '+(lo&&lo===hi?'You entered <b>'+lo+'</b> sig fig'+(lo===1?'':'s')+'. ':'')+'This answer needs <b>'+need+'</b>: <b>'+ans+'</b>. On a Skill Check or exam this would lose points, so fix it next time!';}
+function sfCloseMsg(raw,need,ans){return CP.sfCloseMsg(raw,need,ans);}
 function checkAnswer(){const q=S.q,raw=byId('answer').value.trim();if(q.done)return;if(!raw)return feedback('info','Enter an answer first.');if(decimalComma(raw))return feedback('info','Use a period for decimals: type <b>2.5</b>, not <b>2,5</b>.');const n=parseValue(raw);if(!Number.isFinite(n))return feedback('info','Enter a number, like 0.0472 or 4.72E-2.');tried(q);
  if(q.kind==='abs'){const ok=Math.abs(n-q.answer)<=q.tol;if(!ok){const t=trapMsg(q,n),dg=t?null:ddDiagnose(n,q.answer,q.unit);ddSlip(q,t?'trap':dg?dg.code:'other');}if(q.quiz)return quizResult(q,ok);return ok?feedback('good','Correct! '+esc(q.shown)+'.'+score(q)):(wrong(q),feedback('bad',(trapMsg(q,n)||(ddDiagnose(n,q.answer,q.unit)||{}).msg||'Check your setup. Remember K = °C + 273.15.')));}
  /* sig-fig answers: within 0.5% AND ±1 in the last digit of the rounded answer (as Stoichiometry); extra digits are rounded to q.sf first, then get the yellow sig-fig notice */
