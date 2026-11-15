@@ -8,7 +8,7 @@ const cut=(a,b)=>{const i=html.indexOf(a),j=html.indexOf(b,i);if(i<0||j<0)throw 
 const head=cut('const byId=','/* ---------- 2. data');
 const logic=cut('/*LAB-LOGIC-START','/*LAB-LOGIC-END*/');
 /* the shared number reader lives in the games repo, cloned next to this one */
-const ChemParse=require(path.join(__dirname,'..','..','games','brand','chemparse.v1.js'));
+const ChemParse=require(path.join(__dirname,'..','..','games','brand','chemparse.v2.js'));
 const ctx={console,Math,Number,String,Object,Set,Array,JSON,matchMedia:()=>({matches:false}),document:{},window:{ChemParse}};
 vm.createContext(ctx);vm.runInContext(head+'\n'+logic+'\nthis.labSpec=labSpec;this.labModel=labModel;this.fmt=fmt;this.parseValue=parseValue;this.sfRange=sfRange;',ctx);
 const N=+process.argv[2]||2000,Rg=0.082058,K=273.15;let fails=0,checks=0;
