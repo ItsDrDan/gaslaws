@@ -14,3 +14,7 @@ Runs the `/*LAB-LOGIC-START*/ … /*LAB-LOGIC-END*/` block of `index.html` in No
 - `parseValue`: decimal commas (2,5) are rejected; thousands separators (1,200) and E notation are accepted
 
 Exit code 1 on any failure.
+
+`NODE_PATH=/path/to/node_modules node tools/check-deeplink.js` (needs the `playwright` package)
+
+Loads `index.html` in Chromium at a phone size (390×844, touch) and a desktop size and checks the demo deep links: `?quest=lab` opens the Piston Lab Practice Quest (Predict, then the lab inside the question), `?open=lab` opens the free-play panel and scrolls to it, both with `?course=1A` too, and the plain URL still opens the Learn Trail with the panel closed. Fails on any console error. Shared scripts load from the sibling `games`/`questionbank` clones; `track.js` is stubbed.
